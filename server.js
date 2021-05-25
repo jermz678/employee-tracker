@@ -1,10 +1,63 @@
 const express = require('express');
 const cTable = require('console.table');
-//var inquirer = require('inquirer');
+var inquirer = require('inquirer');
 //const mysql = require('mysql2');
 const db = require('./db/connection')
+const departmentRoutes = require('./apiRoutes/departmentsRoute');
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
+app.use('/api', departmentRoutes);
+
+const questions = [
+  {
+    type: 'list',
+      name: 'choices',
+      message: 'choose from the following',
+      choices: [
+        'View all Departments',
+        'View all Roles',
+        'View all Employees',
+        'Add a Department',
+        'Add a Role',  
+        'Add an Employee',
+        'Update an Employee'
+      ]
+  }
+]
+
+
+startQuestions = function(){
+  inquirer.prompt(questions)
+  .then(data => {
+      switch (data.choices){
+        case 'View all Departments':
+          db.query(`SELECT * FROM department`, (err, rows) => {
+            console.table(rows);
+            startQuestions();
+          });
+          break;
+        case 'View all Roles':
+          db.query(`SELECT * FROM employee_role`, (err, rows) => {
+            console.table(rows);
+            startQuestions();
+          });
+          break;
+          case 'View all Employees':
+            db.query(`SELECT * FROM employee`, (err, rows) => {
+              console.table(rows);
+              startQuestions();
+            });
+            break;
+        default:
+          console.log('woopsies')
+    };
+  })};
+    
+
+startQuestions()
 
 db.connect(err => {
     if (err) throw err;
@@ -14,15 +67,7 @@ db.connect(err => {
     });
   });
 
-  
-// GIVEN a command-line application that accepts user input
-// WHEN I start the application
-// THEN I am presented with the following options: view all departments, view all roles, 
-//view all employees, add a department, add a role, add an employee, and update an employee role
-// WHEN I choose to view all departments
-// THEN I am presented with a formatted table showing department names and department ids
-// WHEN I choose to view all roles
-// THEN I am presented with the job title, role id, the department that role belongs to, and the salary for that role
+
 // WHEN I choose to view all employees
 // THEN I am presented with a formatted table showing employee data, 
 //including employee ids, first names, last names, job titles, departments, salaries, and managers that the employees report to
