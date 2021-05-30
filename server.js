@@ -3,13 +3,13 @@ const express = require('express');
 var inquirer = require('inquirer');
 const mysql = require('mysql2');
 const db = require('./db/connection')
-const departmentRoutes = require('./apiRoutes/departmentsRoute');
+//const departmentRoutes = require('./apiRoutes/departmentsRoute');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
-app.use('/api', departmentRoutes);
+//app.use('/api', departmentRoutes);
 
 const questions = [
   {
@@ -49,11 +49,19 @@ startQuestions = function(){
           });
           break;
         case 'View all Employees':
-            db.query(`SELECT e.id, e.first_name, e.last_name, employee_role.title, e.manager_id AS manager, employee_role.salary,
+            db.query(`SELECT worker.id, 
+            worker.first_name, 
+            worker.last_name, 
+            worker.manager_id,
+            manager.last_name as Manager,
+            employee_role.title,
+            employee_role.salary, 
             department.dep_name AS department
-            FROM employees AS e
+            FROM employees worker
+            LEFT JOIN employees manager
+            ON manager.id = worker.manager_id
             LEFT JOIN employee_role
-            ON e.role_id = employee_role.id
+            ON worker.role_id = employee_role.id
             LEFT JOIN department
             ON employee_role.department_id = department.id;`, (err, rows) => {
               console.table(rows);
@@ -61,13 +69,38 @@ startQuestions = function(){
             });
             break;
         case 'Add a Department':
-            db.query(`INSERT INTO department (dep_name) VALUES (?)`, (err, rows) => {
-              console.table(rows);
-              startQuestions();
-            })
+          inquirer
+            .prompt([
+              {
+                type: 'input',
+                name: 'department' ,
+                message: "What is the name of the new Department?"
+              }
+            ]).then((answers) => {
+          app.post('/department', ({ body }, res) => {
+    
+            const sql = `INSERT INTO department (dep_name) VALUES (?)`;
+            const params = [
+                body.dep_name
+            ];
+        
+            db.query(sql, params, (err, result)=> {
+                if (err) {
+                    res.status(400).json({ error: err.message });
+                    return;
+                  }
+                  res.json({
+                    message: 'success',
+                    data: body
+                  });
+                  startQuestions();
+                });
+            });
+          });
 
         default:
           console.log('woopsies')
+          startQuestions();
     };
   })};
     
@@ -82,10 +115,6 @@ db.connect(err => {
     });
   });
 
-
-// WHEN I choose to view all employees
-// THEN I am presented with a formatted table showing employee data, 
-//including  and managers that the employees report to
 // WHEN I choose to add a department
 // THEN I am prompted to enter the name of the department and that department is added to the database
 // WHEN I choose to add a role

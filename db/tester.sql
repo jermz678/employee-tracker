@@ -13,13 +13,18 @@
 -- LEFT JOIN department
 -- ON employee_role.department_id = department.id;
 
-
-SELECT e.id, e.first_name, e.last_name, e.manager_id, employee_role.title, employee_role.salary,
-department.dep_name AS department, hello.last_name as Manager
-FROM employees AS e
+SELECT worker.id, 
+worker.first_name, 
+worker.last_name, 
+worker.manager_id,
+manager.last_name as Manager,
+employee_role.title,
+employee_role.salary, 
+department.dep_name AS department
+FROM employees worker
+LEFT JOIN employees manager
+ON manager.id = worker.manager_id
 LEFT JOIN employee_role
-ON e.role_id = employee_role.id
+ON worker.role_id = employee_role.id
 LEFT JOIN department
-ON employee_role.department_id = department.id
-LEFT JOIN employees hello
-ON hello.id = e.manager_id;
+ON employee_role.department_id = department.id;
