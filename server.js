@@ -3,17 +3,17 @@ const express = require('express');
 var inquirer = require('inquirer');
 const mysql = require('mysql2');
 const db = require('./db/connection')
-//const departmentRoutes = require('./apiRoutes/departmentsRoute');
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(express.urlencoded({ extended: false }));
+//app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
-//app.use('/api', departmentRoutes);
 
 const questions = [
   {
     type: 'list',
+
       name: 'choices',
       message: 'choose from the following',
       choices: [
@@ -28,6 +28,54 @@ const questions = [
   }
 ]
 
+const depQuestions = [
+  {
+    type: 'input',
+    name: 'department' ,
+    message: "What is the name of the new Department?"
+  }
+]
+
+const roleQuestions = [
+  {
+    type: 'input',
+    name: 'title',
+    message: 'What is the roles title?'
+  },
+  {
+    type: 'input',
+    name: 'salary',
+    message: 'What is the salary of this new role?'
+  },
+  {
+    type: 'input',
+    name: 'department',
+    message: 'What department will this role be tied to? PLEASE CHOOSE THE ID NUMBER associated with the department'
+  }
+]
+
+const employeeQuestions = [
+  {
+    type: 'input',
+    name: 'firstName',
+    message: 'Enter the Employees First Name'
+  },
+  {
+    type: 'input',
+    name: 'lastName',
+    message: 'Enter the Employees Last Name'
+  },
+  {
+    type: 'input',
+    name: 'role',
+    message: 'Enter the employees Role.  PLEASE CHOOSE THE ID NUMBER associated with the role.'
+  },
+  {
+    type: 'input',
+    name: 'manager',
+    message: 'Enter the Employees Manager.  PLEASE CHOOSE THE ID NUMBER associated with the correct manager.'
+  }
+]
 
 startQuestions = function(){
   inquirer.prompt(questions)
@@ -52,7 +100,6 @@ startQuestions = function(){
             db.query(`SELECT worker.id, 
             worker.first_name, 
             worker.last_name, 
-            worker.manager_id,
             manager.last_name as Manager,
             employee_role.title,
             employee_role.salary, 
@@ -69,35 +116,73 @@ startQuestions = function(){
             });
             break;
         case 'Add a Department':
-          inquirer
-            .prompt([
-              {
-                type: 'input',
-                name: 'department' ,
-                message: "What is the name of the new Department?"
-              }
-            ]).then((answers) => {
-          app.post('/department', ({ body }, res) => {
-    
-            const sql = `INSERT INTO department (dep_name) VALUES (?)`;
-            const params = [
-                body.dep_name
-            ];
-        
-            db.query(sql, params, (err, result)=> {
-                if (err) {
-                    res.status(400).json({ error: err.message });
-                    return;
-                  }
-                  res.json({
-                    message: 'success',
-                    data: body
-                  });
-                  startQuestions();
-                });
+          inquirer.prompt(depQuestions)
+          .then((data) => {
+            db.query(`INSERT INTO department (dep_name)
+            VALUES ('${data.department}')`)
+            db.query(`SELECT * FROM department`, (err, rows) => {
+              console.table(rows);
+              startQuestions();
             });
           });
-
+          break;
+        case 'Add a Role':
+          db.query(`SELECT * FROM department`, (err, rows) => {
+            console.table(rows);
+          inquirer.prompt(roleQuestions)
+          .then((data) => {
+            db.query(`INSERT INTO employee_role (title, salary, department_id)
+            VALUES ('${data.title}', '${data.salary}', '${data.department}')`)
+            db.query(`SELECT employee_role.title, employee_role.salary, department.dep_name
+            FROM employee_role 
+            LEFT JOIN department
+            ON employee_role.department_id = department.id;`, (err, rows) => {
+            console.table(rows);
+            startQuestions();
+              });
+            });
+          });
+          break;
+        case 'Add an Employee':
+          db.query(`SELECT worker.id, 
+            worker.first_name, 
+            worker.last_name, 
+            worker.role_id;
+            manager.last_name as Manager,
+            employee_role.title,
+            employee_role.salary, 
+            department.dep_name AS department
+            FROM employees worker
+            LEFT JOIN employees manager
+            ON manager.id = worker.manager_id
+            LEFT JOIN employee_role
+            ON worker.role_id = employee_role.id
+            LEFT JOIN department
+            ON employee_role.department_id = department.id;`, (err, rows) => {
+              console.table(rows);
+            inquirer.prompt(employeeQuestions)
+            .then((data) => {
+              db.query(`INSERT INTO employees (first_name, last_name, role_id, manager_id)
+              VALUES ('${data.firstName}', '${data.lastName}', '${data.role}', '${data.manager}')`)
+              db.query(`SELECT worker.id, 
+            worker.first_name, 
+            worker.last_name, 
+            manager.last_name as Manager,
+            employee_role.title,
+            employee_role.salary, 
+            department.dep_name AS department
+            FROM employees worker
+            LEFT JOIN employees manager
+            ON manager.id = worker.manager_id
+            LEFT JOIN employee_role
+            ON worker.role_id = employee_role.id
+            LEFT JOIN department
+            ON employee_role.department_id = department.id;`, (err, rows) => {
+              console.table(rows);
+              startQuestions();
+            });
+          })})
+          break;
         default:
           console.log('woopsies')
           startQuestions();
@@ -115,10 +200,6 @@ db.connect(err => {
     });
   });
 
-// WHEN I choose to add a department
-// THEN I am prompted to enter the name of the department and that department is added to the database
-// WHEN I choose to add a role
-// THEN I am prompted to enter the name, salary, and department for the role and that role is added to the database
 // WHEN I choose to add an employee
 // THEN I am prompted to enter the employee’s first name, last name, role, and manager and that employee is added to the database
 // WHEN I choose to update an employee role

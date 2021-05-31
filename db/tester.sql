@@ -16,7 +16,6 @@
 SELECT worker.id, 
 worker.first_name, 
 worker.last_name, 
-worker.manager_id,
 manager.last_name as Manager,
 employee_role.title,
 employee_role.salary, 
