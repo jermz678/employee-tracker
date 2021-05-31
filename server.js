@@ -1,5 +1,5 @@
 const express = require('express');
- require('console.table');
+require('console.table');
 var inquirer = require('inquirer');
 const mysql = require('mysql2');
 const db = require('./db/connection')
@@ -7,16 +7,14 @@ const db = require('./db/connection')
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-//app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
 const questions = [
   {
     type: 'list',
-
-      name: 'choices',
-      message: 'choose from the following',
-      choices: [
+    name: 'choices',
+    message: 'choose from the following',
+    choices: [
         'View all Departments',
         'View all Roles',
         'View all Employees',
@@ -24,7 +22,7 @@ const questions = [
         'Add a Role',  
         'Add an Employee',
         'Update an Employee'
-      ]
+    ]
   }
 ]
 
@@ -87,6 +85,7 @@ startQuestions = function(){
             startQuestions();
           });
           break;
+
         case 'View all Roles':
           db.query(`SELECT employee_role.title, employee_role.salary, department.dep_name
           FROM employee_role 
@@ -96,6 +95,7 @@ startQuestions = function(){
             startQuestions();
           });
           break;
+
         case 'View all Employees':
             db.query(`SELECT worker.id, 
             worker.first_name, 
@@ -115,6 +115,7 @@ startQuestions = function(){
               startQuestions();
             });
             break;
+
         case 'Add a Department':
           inquirer.prompt(depQuestions)
           .then((data) => {
@@ -126,6 +127,7 @@ startQuestions = function(){
             });
           });
           break;
+
         case 'Add a Role':
           db.query(`SELECT * FROM department`, (err, rows) => {
             console.table(rows);
@@ -139,10 +141,11 @@ startQuestions = function(){
             ON employee_role.department_id = department.id;`, (err, rows) => {
             console.table(rows);
             startQuestions();
-              });
             });
           });
+          });
           break;
+
         case 'Add an Employee':
           db.query(`SELECT worker.id, 
             worker.first_name, 
@@ -181,8 +184,10 @@ startQuestions = function(){
               console.table(rows);
               startQuestions();
             });
-          })})
+          });
+        });
           break;
+
         default:
           console.log('woopsies')
           startQuestions();
@@ -200,7 +205,3 @@ db.connect(err => {
     });
   });
 
-// WHEN I choose to add an employee
-// THEN I am prompted to enter the employee’s first name, last name, role, and manager and that employee is added to the database
-// WHEN I choose to update an employee role
-// THEN I am prompted to select an employee to update and their new role and this information is updated in the database 
